@@ -768,7 +768,7 @@
     }
 
     function getAppParameters(config) {
-        var params = "?_dc=0";
+        var params = "?_dc=5.5.3-39";
 
         if (config.editorConfig && config.editorConfig.lang)
             params += "&lang=" + config.editorConfig.lang;
