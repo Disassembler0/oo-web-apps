@@ -95,6 +95,10 @@ define([
 
             onInsertByFile: function (e) {
                 PE.getController('AddContainer').hideModal();
+
+                if (this.api) {
+                    this.api.asc_addImage();
+                }
             },
 
             onUrlChange: function (e) {
@@ -111,6 +115,9 @@ define([
                     if (!_.isEmpty(value)) {
                         if ((/((^https?)|(^ftp)):\/\/.+/i.test(value))) {
                             PE.getController('AddContainer').hideModal();
+                            _.defer(function () {
+                                me.api.AddImageUrl(value);
+                            });
                         } else {
                             uiApp.alert(me.txtNotUrl);
                         }

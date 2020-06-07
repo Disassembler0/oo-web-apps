@@ -78,6 +78,10 @@ define([
 
             onInsertChart: function (type) {
                 SSE.getController('AddContainer').hideModal();
+
+                var settings = this.api.asc_getChartObject();
+                settings.changeType(type);
+                this.api.asc_addChartDrawingObject(settings);
             },
 
             txtDiagramTitle:    'Chart Title',

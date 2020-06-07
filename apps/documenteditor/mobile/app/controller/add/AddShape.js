@@ -215,6 +215,13 @@ define([
             },
 
             onShapeClick: function (e) {
+                var me = this,
+                    $target = $(e.currentTarget);
+
+                if ($target && me.api) {
+                    me.api.AddShapeOnCurrentPage($target.data('type'));
+                }
+
                 DE.getController('AddContainer').hideModal();
             },
 

@@ -62,8 +62,7 @@ require.config({
         gateway         : 'common/Gateway',
         locale          : 'common/locale',
         irregularstack  : 'common/IrregularStack',
-        sharedsettings  : 'common/mobile/utils/SharedSettings',
-        features        : '../../web-apps-mobile/word/patch'
+        sharedsettings  : 'common/mobile/utils/SharedSettings'
     },
 
     shim: {
@@ -225,8 +224,7 @@ require([
             'common/mobile/lib/controller/Collaboration'
         ], function() {
             window.compareVersions = true;
-            var _s = app.start.bind(app);
-            require(['features'], _s, _s);
+            app.start();
         });
     });
 }, function(err) {

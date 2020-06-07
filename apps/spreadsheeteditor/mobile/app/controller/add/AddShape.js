@@ -211,6 +211,12 @@ define([
             },
 
             onShapeClick: function (e) {
+                var $target = $(e.currentTarget);
+
+                if ($target && this.api) {
+                    this.api.asc_addShapeOnSheet($target.data('type'));
+                }
+
                 SSE.getController('AddContainer').hideModal();
             },
 

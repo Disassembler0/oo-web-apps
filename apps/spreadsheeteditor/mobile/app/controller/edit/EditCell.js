@@ -51,8 +51,29 @@ define([
     'use strict';
 
     SSE.Controllers.EditCell = Backbone.Controller.extend(_.extend((function() {
-        var _stack = [],
-           _borderInfo = {color: '000000', width: Asc.c_oAscBorderStyles.Medium};
+        var _fontsArray = [],
+            _stack = [],
+            _cellInfo = undefined,
+            _cellStyles = [],
+            _fontInfo = {},
+            _borderInfo = {color: '000000', width: Asc.c_oAscBorderStyles.Medium},
+            _styleSize = {width: 100, height: 50},
+            _isEdit = false;
+
+        function onApiLoadFonts(fonts, select) {
+            _.each(fonts, function(font){
+                var fontId = font.asc_getFontId();
+                _fontsArray.push({
+                    id          : fontId,
+                    name        : font.asc_getFontName(),
+//                    displayValue: font.asc_getFontName(),
+                    imgidx      : font.asc_getFontThumbnail(),
+                    type        : font.asc_getFontType()
+                });
+            });
+
+            Common.NotificationCenter.trigger('fonts:load', _fontsArray, select);
+        }
 
         return {
             models: [],
@@ -71,26 +92,22 @@ define([
                         'style:click'   : this.onStyleClick
                     }
                 });
-                this._fontsArray = [];
-                this._styleSize = {width: 100, height: 50};
-                this._cellStyles = [];
-                this._cellInfo = undefined;
-                this._fontInfo = {};
-                this._isEdit = false;
             },
 
             setApi: function (api) {
                 var me = this;
                 me.api = api;
 
-                me.api.asc_setThumbnailStylesSizes(me._styleSize.width, me._styleSize.height);
+                me.api.asc_setThumbnailStylesSizes(_styleSize.width, _styleSize.height);
 
+                me.api.asc_registerCallback('asc_onInitEditorFonts',            _.bind(onApiLoadFonts, me));
                 me.api.asc_registerCallback('asc_onSelectionChanged',           _.bind(me.onApiSelectionChanged, me));
                 me.api.asc_registerCallback('asc_onEditorSelectionChanged',     _.bind(me.onApiEditorSelectionChanged, me));
+                me.api.asc_registerCallback('asc_onInitEditorStyles',           _.bind(me.onApiInitEditorStyles, me));
             },
 
             setMode: function (mode) {
-                this._isEdit = mode.isEdit;
+                _isEdit = mode.isEdit;
             },
 
             onLaunch: function () {
@@ -108,10 +125,12 @@ define([
                 $('#font-italic').single('click',               _.bind(me.onItalic, me));
                 $('#font-underline').single('click',            _.bind(me.onUnderline, me));
 
-                me.getView('EditCell').renderStyles(me._cellStyles);
+                me.getView('EditCell').renderStyles(_cellStyles);
 
                 me.initSettings();
             },
+
+
 
             onPageShow: function (view, pageId) {
                 var me = this;
@@ -137,14 +156,14 @@ define([
                 } else if (!_.isUndefined(pageId) && pageId.indexOf('#edit-cell-format') > -1) {
                     me.initCellFormat();
                 } else {
-                    me.initCellSettings(me._cellInfo);
+                    me.initCellSettings(_cellInfo);
                 }
             },
 
             // Public
 
             getFonts: function() {
-                return this._fontsArray;
+                return _fontsArray;
             },
 
             getStack: function() {
@@ -152,20 +171,20 @@ define([
             },
 
             getFontInfo: function () {
-                return this._fontInfo;
+                return _fontInfo;
             },
 
             getCell: function () {
-                return this._cellInfo;
+                return _cellInfo;
             },
 
             getStyleSize: function () {
-                return this._styleSize;
+                return _styleSize;
             },
 
             initFontsPage: function () {
                 var me = this,
-                    displaySize = this._fontInfo.size;
+                    displaySize = _fontInfo.size;
 
                 _.isUndefined(displaySize) ? displaySize = this.textAuto : displaySize = displaySize + ' ' + this.textPt;
 
@@ -176,7 +195,7 @@ define([
             initTextColorPage: function () {
                 var me = this,
                     palette = me.getView('EditCell').paletteTextColor,
-                    color = me._sdkToThemeColor(this._fontInfo.color);
+                    color = me._sdkToThemeColor(_fontInfo.color);
 
                 if (palette) {
                     palette.select(color);
@@ -185,11 +204,9 @@ define([
             },
 
             initFillColorPage: function () {
-                if (_.isUndefined(this._cellInfo)) return;
-
                 var me = this,
                     palette = me.getView('EditCell').paletteFillColor,
-                    color = me._sdkToThemeColor(me._cellInfo.asc_getFill().asc_getColor());
+                    color = me._sdkToThemeColor(_cellInfo.asc_getFill().asc_getColor());
 
                 if (palette) {
                     palette.select(color);
@@ -211,15 +228,13 @@ define([
             },
 
             initTextFormat: function () {
-                if (_.isUndefined(this._cellInfo)) return;
-
                 var me = this,
                     $pageTextFormat = $('.page[data-page=edit-text-format]'),
-                    hAlign = me._cellInfo.asc_getHorAlign(),
-                    vAlign = me._cellInfo.asc_getVertAlign(),
+                    hAlign = _cellInfo.asc_getHorAlign(),
+                    vAlign = _cellInfo.asc_getVertAlign(),
                     hAlignStr = 'left',
                     vAlignStr = 'bottom',
-                    isWrapText = me._cellInfo.asc_getFlags().asc_getWrapText();
+                    isWrapText = _cellInfo.asc_getFlags().asc_getWrapText();
 
                 if (vAlign == Asc.c_oAscVAlign.Top)
                     vAlignStr = 'top';
@@ -279,7 +294,7 @@ define([
 
                 // Init font name
                 var fontName = fontObj.asc_getName() || this.textFonts;
-                this._fontInfo.name = fontName;
+                _fontInfo.name = fontName;
 
                 $('#font-fonts .item-title').html(fontName);
 
@@ -291,8 +306,8 @@ define([
 
 
                 // Init font size
-                this._fontInfo.size = fontObj.asc_getSize();
-                var displaySize = this._fontInfo.size;
+                _fontInfo.size = fontObj.asc_getSize();
+                var displaySize = _fontInfo.size;
 
                 _.isUndefined(displaySize) ? displaySize = this.textAuto : displaySize = displaySize + ' ' + this.textPt;
 
@@ -301,9 +316,9 @@ define([
 
 
                 // Init font color
-                this._fontInfo.color = fontObj.asc_getColor();
+                _fontInfo.color = fontObj.asc_getColor();
 
-                var color = this._fontInfo.color,
+                var color = _fontInfo.color,
                     clr = me._sdkToThemeColor(color);
 
                 $('#text-color .color-preview').css('background-color', '#' + (_.isObject(clr) ? clr.color : clr));
@@ -341,12 +356,21 @@ define([
                 me.initTextFormat();
             },
 
+            onApiInitEditorStyles: function(styles){
+                window.styles_loaded = false;
+                _cellStyles = styles;
+
+                this.getView('EditCell').renderStyles(styles);
+
+                window.styles_loaded = true;
+            },
+
             // Handlers
 
             onFontSize: function (e) {
                 var me = this,
                     $button = $(e.currentTarget),
-                    fontSize = this._fontInfo.size;
+                    fontSize = _fontInfo.size;
 
                 if ($button.hasClass('decrement')) {
                     _.isUndefined(fontSize) ? me.api.asc_decreaseFontSize() : fontSize = Math.max(1, --fontSize);
@@ -440,6 +464,10 @@ define([
             },
 
             onCellFormat: function (e) {
+                var $target = $(e.currentTarget),
+                    type = decodeURIComponent(atob($target.data('type')));
+
+                this.api.asc_setCellFormat(type);
             },
 
             onBorderStyle: function (e) {
@@ -476,9 +504,21 @@ define([
             // API handlers
 
             onApiEditorSelectionChanged: function(fontObj) {
+                if (!_isEdit) {
+                    return;
+                }
+
+                _fontInfo = fontObj;
+                this.initFontSettings(fontObj);
             },
 
             onApiSelectionChanged: function(cellInfo) {
+                if (!_isEdit) {
+                    return;
+                }
+
+                _cellInfo = cellInfo;
+                this.initCellSettings(cellInfo);
             },
 
             // Helpers

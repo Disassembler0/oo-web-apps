@@ -80,14 +80,6 @@ module.exports = function(grunt) {
                     to: _encode(process.env.PLUGIN_LINK_MACROS) || 'https://api.onlyoffice.com/plugin/macros'
                 }];
 
-    let path = require('path');
-    let addons = grunt.option('addon') || [];
-    if (!Array.isArray(addons))
-        addons = [addons];
-
-    addons.forEach((element,index,self) => self[index] = path.join('../..', element, '/build'));
-    addons = addons.filter(element => grunt.file.isDir(element));
-
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -161,14 +153,6 @@ module.exports = function(grunt) {
 
             if (packageFile) {
                 grunt.log.ok(appName + ' config loaded successfully'.green);
-
-                addons.forEach(element => {
-                    let _path = path.join(element,configFile);
-                    if (grunt.file.exists(_path)) {
-                        _merge(packageFile, require(_path));
-                        grunt.log.ok('addon '.green + element + ' is merged successfully'.green);
-                    }
-                });
 
                 if ( !!_extConfig && _extConfig.name == packageFile.name ) {
                     _merge(packageFile, _extConfig);

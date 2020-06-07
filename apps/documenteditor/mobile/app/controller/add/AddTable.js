@@ -51,7 +51,8 @@ define([
     'use strict';
 
     DE.Controllers.AddTable = Backbone.Controller.extend(_.extend((function() {
-        var _initDefaultStyles = false;
+        var _styles = [],
+            _initDefaultStyles = false;
 
         return {
             models: [],
@@ -68,13 +69,13 @@ define([
                         'view:render' : this.onViewRender
                     }
                 });
-
-                this._styles = [];
             },
 
             setApi: function (api) {
                 var me = this;
                 me.api = api;
+
+                me.api.asc_registerCallback('asc_onInitTableTemplates', _.bind(me.onApiInitTemplates, me));
             },
 
             onLaunch: function () {
@@ -86,7 +87,7 @@ define([
 
                 if (!_initDefaultStyles) {
                     _initDefaultStyles = true;
-                    this._styles = [];
+                    _styles = [];
 
                     me.api.asc_GetDefaultTableStyles();
                 }
@@ -171,7 +172,22 @@ define([
             // Public
 
             getStyles: function () {
-                return this._styles;
+                return _styles;
+            },
+
+            // API handlers
+
+            onApiInitTemplates: function(templates) {
+                if (_styles.length < 1) {
+                    _.each(templates, function(template){
+                        _styles.push({
+                            imageUrl    : template.asc_getImage(),
+                            templateId  : template.asc_getId()
+                        });
+                    });
+
+                    this.getView('AddTable').render();
+                }
             },
 
             textTableSize: 'Table Size',

@@ -580,22 +580,6 @@ define([
 
             applyLicense: function() {
                 var me = this;
-                if (this.editorConfig.mode !== 'view' && !this.isSupportEditFeature()) {
-                    var value = Common.localStorage.getItem("pe-opensource-warning");
-                    value = (value!==null) ? parseInt(value) : 0;
-                    var now = (new Date).getTime();
-                    if (now - value > 86400000) {
-                        Common.localStorage.setItem("pe-opensource-warning", now);
-                        uiApp.modal({
-                            title: me.notcriticalErrorTitle,
-                            text : me.errorOpensource,
-                            buttons: [{text: 'OK'}]
-                        });
-                    }
-                    PE.getController('Toolbar').activateControls();
-                    return;
-                }
-
                 if (this._state.licenseType) {
                     var license = this._state.licenseType,
                         buttons = [{text: 'OK'}];
@@ -690,8 +674,7 @@ define([
                 me.appOptions.canRequestEditRights = me.editorConfig.canRequestEditRights;
                 me.appOptions.canEdit         = (me.permissions.edit !== false || me.permissions.review === true) && // can edit or review
                     (me.editorConfig.canRequestEditRights || me.editorConfig.mode !== 'view') && // if mode=="view" -> canRequestEditRights must be defined
-                    (!me.appOptions.isReviewOnly || me.appOptions.canLicense) && // if isReviewOnly==true -> canLicense must be true
-                    me.isSupportEditFeature();
+                    (!me.appOptions.isReviewOnly || me.appOptions.canLicense); // if isReviewOnly==true -> canLicense must be true
                 me.appOptions.isEdit          = me.appOptions.canLicense && me.appOptions.canEdit && me.editorConfig.mode !== 'view';
                 me.appOptions.canReview       = me.appOptions.canLicense && me.appOptions.isEdit && (me.permissions.review===true);
                 me.appOptions.canUseHistory   = me.appOptions.canLicense && !me.appOptions.isLightVersion && me.editorConfig.canUseHistory && me.appOptions.canCoAuthoring && !me.appOptions.isDesktopApp;
@@ -1119,6 +1102,7 @@ define([
             },
 
             onSendThemeColors: function(colors, standart_colors) {
+               Common.Utils.ThemeColor.setColors(colors, standart_colors);
             },
 
             onFocusObject: function(SelectedObjects) {
@@ -1268,10 +1252,6 @@ define([
                     event.preventDefault();
                     return false;
                 }
-            },
-
-            isSupportEditFeature: function() {
-                return false;
             },
 
             // Translation
@@ -1437,8 +1417,7 @@ define([
             textCustomLoader: 'Please note that according to the terms of the license you are not entitled to change the loader.<br>Please contact our Sales Department to get a quote.',
             waitText: 'Please, wait...',
             errorFileSizeExceed: 'The file size exceeds the limitation set for your server.<br>Please contact your Document Server administrator for details.',
-            errorUpdateVersionOnDisconnect: 'Internet connection has been restored, and the file version has been changed.<br>Before you can continue working, you need to download the file or copy its content to make sure nothing is lost, and then reload this page.',
-            errorOpensource: 'Files can be opened for viewing only. Mobile web editors are not available in the Open Source version.'
+            errorUpdateVersionOnDisconnect: 'Internet connection has been restored, and the file version has been changed.<br>Before you can continue working, you need to download the file or copy its content to make sure nothing is lost, and then reload this page.'
         }
     })(), PE.Controllers.Main || {}))
 });

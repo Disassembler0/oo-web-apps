@@ -52,6 +52,7 @@ define([
     DE.Controllers.EditChart = Backbone.Controller.extend(_.extend((function() {
         // Private
         var _stack = [],
+            _chartObject = undefined,
             _shapeObject = undefined,
             _metricText = Common.Utils.Metric.getCurrentMetricName(),
             _borderColor = 'transparent';
@@ -126,8 +127,6 @@ define([
                         'page:show': this.onPageShow
                     }
                 });
-
-                this._chartObject = undefined;
             },
 
             setApi: function (api) {
@@ -135,6 +134,7 @@ define([
                 me.api = api;
 
                 me.api.asc_registerCallback('asc_onFocusObject',        _.bind(me.onApiFocusObject, me));
+                me.api.asc_registerCallback('asc_onUpdateChartStyles',  _.bind(me.onApiUpdateChartStyles, me));
             },
 
             onLaunch: function () {
@@ -172,11 +172,11 @@ define([
             initSettings: function (pageId) {
                 var me = this;
                 _metricText = Common.Utils.Metric.getMetricName(Common.Utils.Metric.getCurrentMetric());
-                if (me._chartObject) {
+                if (_chartObject) {
                     if (pageId == '#edit-chart-wrap') {
                         me._initWrapView();
                     } else if (pageId == '#edit-chart-style') {
-                        me._updateChartStyles(me.api.asc_getChartPreviews(me._chartObject.get_ChartProperties().getType()));
+                        me._updateChartStyles(me.api.asc_getChartPreviews(_chartObject.get_ChartProperties().getType()));
                         me._initStyleView();
                     } else if (pageId == '#edit-chart-border-color-view') {
                         me._initStyleView();
@@ -187,7 +187,7 @@ define([
             _initWrapView: function() {
                 // Wrap type
                 var me = this,
-                    wrapping = me._chartObject.get_WrappingStyle(),
+                    wrapping = _chartObject.get_WrappingStyle(),
                     $chartWrapInput = $('.chart-wrap input'),
                     chartWrapType = wrapTypesTransform.sdkToUi(wrapping);
 
@@ -195,7 +195,7 @@ define([
                 me._uiTransformByWrap(chartWrapType);
 
                 // Wrap align
-                var chartHAlign = me._chartObject.get_PositionH().get_Align();
+                var chartHAlign = _chartObject.get_PositionH().get_Align();
 
                 $('.chart-wrap .align a[data-type=left]').toggleClass('active', chartHAlign == Asc.c_oAscAlignH.Left);
                 $('.chart-wrap .align a[data-type=center]').toggleClass('active', chartHAlign == Asc.c_oAscAlignH.Center);
@@ -203,11 +203,11 @@ define([
 
 
                 // Wrap flags
-                $('#edit-chart-movetext input').prop('checked', me._chartObject.get_PositionV().get_RelativeFrom() == Asc.c_oAscRelativeFromV.Paragraph);
-                $('#edit-chart-overlap input').prop('checked', me._chartObject.get_AllowOverlap());
+                $('#edit-chart-movetext input').prop('checked', _chartObject.get_PositionV().get_RelativeFrom() == Asc.c_oAscRelativeFromV.Paragraph);
+                $('#edit-chart-overlap input').prop('checked', _chartObject.get_AllowOverlap());
 
                 // Wrap distance
-                var paddings = me._chartObject.get_Paddings();
+                var paddings = _chartObject.get_Paddings();
                 if (paddings) {
                     var distance = Common.Utils.Metric.fnRecalcFromMM(paddings.get_Top());
                     $('.chart-wrap .distance input').val(distance);
@@ -217,7 +217,7 @@ define([
 
             _initStyleView: function (updateStyles) {
                 var me = this,
-                    chartProperties = me._chartObject.get_ChartProperties(),
+                    chartProperties = _chartObject.get_ChartProperties(),
                     shapeProperties = _shapeObject.get_ShapeProperties(),
                     paletteFillColor = me.getView('EditChart').paletteFillColor,
                     paletteBorderColor = me.getView('EditChart').paletteBorderColor;
@@ -295,12 +295,29 @@ define([
             // Public
 
             getChart: function () {
-                return this._chartObject;
+                return _chartObject;
             },
 
             // Handlers
 
             onType: function (e) {
+                var me = this,
+                    $target = $(e.currentTarget),
+                    type = $target.data('type');
+
+                var image = new Asc.asc_CImgProperty(),
+                    chart = _chartObject.get_ChartProperties();
+
+                chart.changeType(type);
+                image.put_ChartProperties(chart);
+
+                me.api.ImgApply(image);
+
+                $('.chart-types li').removeClass('active');
+                $target.addClass('active');
+
+                // Force update styles
+                me._updateChartStyles(me.api.asc_getChartPreviews(chart.getType()));
             },
 
             onStyle: function (e) {
@@ -309,7 +326,7 @@ define([
                     type = $target.data('type');
 
                 var image = new Asc.asc_CImgProperty(),
-                    chart = me._chartObject.get_ChartProperties();
+                    chart = _chartObject.get_ChartProperties();
 
                 chart.putStyle(type);
                 image.put_ChartProperties(chart);
@@ -543,13 +560,23 @@ define([
                     }
                 };
 
-                this._chartObject = getTopObject(charts);
+                _chartObject = getTopObject(charts);
                 _shapeObject = getTopObject(shapes);
+            },
+
+            onApiUpdateChartStyles: function () {
+                if (this.api && _chartObject && _chartObject.get_ChartProperties()) {
+                    this._updateChartStyles(this.api.asc_getChartPreviews(_chartObject.get_ChartProperties().getType()));
+                }
             },
 
             // Helpers
 
             _updateChartStyles: function(styles) {
+                Common.SharedSettings.set('chartstyles', styles);
+                Common.NotificationCenter.trigger('chartstyles:load', styles);
+
+                $('#tab-chart-style li').single('click',    _.bind(this.onStyle, this));
             },
 
             _uiTransformByWrap: function(type) {
